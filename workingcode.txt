@@ -1,0 +1,128 @@
+#include <WiFi.h>
+
+// -------- WIFI --------
+const char* ssid = "Wifi";
+const char* password = "55777257082";
+
+// -------- PINS --------
+#define LDR_PIN 12
+#define BUZZER_PIN 21
+
+int ledPins[4] = {4, 5, 16, 18};
+
+// -------- FILTER --------
+float alpha = 0.2;
+float rssiSmooth = -60;
+float prevRSSI = -60;
+float ldrSmooth = 0;
+
+// -------- TIMING --------
+unsigned long lastRead = 0;
+int interval = 500;
+
+// -------- BUZZER TIMER --------
+unsigned long buzzerOnTime = 0;
+
+// -------- LDR READ --------
+int readLDR() {
+  int sum = 0;
+  for (int i = 0; i < 10; i++) {
+    sum += analogRead(LDR_PIN);
+    delay(2);
+  }
+  return sum / 10;
+}
+
+// -------- LED CONTROL --------
+void setLEDs(int level) {
+  for (int i = 0; i < 4; i++) {
+    digitalWrite(ledPins[i], i < level ? HIGH : LOW);
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  for (int i = 0; i < 4; i++) {
+    pinMode(ledPins[i], OUTPUT);
+  }
+
+  analogReadResolution(12);
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting");
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nConnected!");
+  Serial.println("time,rssi,ldr,leds,intrusion");
+}
+
+void loop() {
+
+  if (millis() - lastRead >= interval) {
+    lastRead = millis();
+
+    int rssiRaw = WiFi.RSSI();
+    int ldrRaw = readLDR();
+
+    // -------- FILTER --------
+    rssiSmooth = alpha * rssiRaw + (1 - alpha) * rssiSmooth;
+    ldrSmooth  = alpha * ldrRaw  + (1 - alpha) * ldrSmooth;
+
+    int ledLevel = 0;
+    bool intrusion = false;
+
+    // -------- ENERGY CONTROL --------
+
+    // Device FAR → all OFF
+    if (rssiSmooth < -40) {
+      ledLevel = 0;
+    }
+
+    // Device NEAR
+    else {
+      if (ldrSmooth > 2000) {
+        ledLevel = 4;  // dark → full light
+      } else {
+        ledLevel = 2;  // bright → low light
+      }
+    }
+
+    // -------- INTRUSION DETECTION --------
+    float diff = abs(rssiSmooth - prevRSSI);
+
+    if (diff > 5) {
+      intrusion = true;
+      buzzerOnTime = millis();  // trigger buzzer
+    }
+
+    // -------- BUZZER CONTROL (FIXED WITH TONE) --------
+    if (millis() - buzzerOnTime < 2000) {
+      tone(BUZZER_PIN, 2000);   // 🔥 produces sound (works for passive buzzer)
+    } else {
+      noTone(BUZZER_PIN);
+    }
+
+    prevRSSI = rssiSmooth;
+
+    // -------- OUTPUT --------
+    setLEDs(ledLevel);
+
+    // -------- SERIAL --------
+    Serial.print(millis());
+    Serial.print(",");
+    Serial.print(rssiSmooth);
+    Serial.print(",");
+    Serial.print(ldrSmooth);
+    Serial.print(",");
+    Serial.print(ledLevel);
+    Serial.print(",");
+    Serial.println(intrusion);
+  }
+}
