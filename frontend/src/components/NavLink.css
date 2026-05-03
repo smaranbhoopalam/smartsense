@@ -1,0 +1,93 @@
+/* GlassIcons-inspired nav tab hover effect */
+.nav-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  text-decoration: none;
+  perspective: 400px;
+  transform-style: preserve-3d;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+/* Colored gradient backing — slides in from behind on hover */
+.nav-tab__back {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transform: rotate(8deg) scale(0.85);
+  transform-origin: 100% 100%;
+  transition:
+    opacity 0.25s cubic-bezier(0.83, 0, 0.17, 1),
+    transform 0.25s cubic-bezier(0.83, 0, 0.17, 1);
+  box-shadow: 0.3em -0.3em 0.6em hsla(223, 10%, 10%, 0.2);
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* Frosted glass front face */
+.nav-tab__front {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: hsla(0, 0%, 100%, 0.07);
+  box-shadow: 0 0 0 1px hsla(0, 0%, 100%, 0.12) inset;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: translateZ(0px);
+  transform-origin: 80% 50%;
+  transition:
+    opacity 0.25s cubic-bezier(0.83, 0, 0.17, 1),
+    transform 0.25s cubic-bezier(0.83, 0, 0.17, 1);
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* Label sits above both layers */
+.nav-tab__label {
+  position: relative;
+  z-index: 2;
+  transition: color 0.2s ease;
+}
+
+/* Dot indicator (for SmartSense) */
+.nav-tab__dot {
+  position: relative;
+  z-index: 2;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Hover / focus states */
+.nav-tab:hover .nav-tab__back,
+.nav-tab:focus-visible .nav-tab__back {
+  opacity: 1;
+  transform: rotate(14deg) translate3d(-3px, -3px, 2px);
+}
+
+.nav-tab:hover .nav-tab__front,
+.nav-tab:focus-visible .nav-tab__front {
+  opacity: 1;
+  transform: translateZ(6px);
+}
+
+/* Active route — keep front visible, dim back */
+.nav-tab.active .nav-tab__front {
+  opacity: 1;
+  box-shadow: 0 0 0 1px hsla(0, 0%, 100%, 0.2) inset;
+}
+
+.nav-tab.active .nav-tab__label {
+  font-weight: 700;
+}
